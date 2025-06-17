@@ -6,6 +6,7 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 from PIL import Image
 from pytrends.request import TrendReq
+from pytrends.exceptions import TooManyRequestsError
 
 # ─── Page & Brand Setup ─────────────────────────────────────────────────────────
 st.set_page_config(layout="wide",
@@ -78,17 +79,7 @@ try:
 except:
     num_events = None
 
-# Pytrends setup for State & DMA
-pytrends = TrendReq(hl="en-US", tz=360)
-pytrends.build_payload(["telehealth"], timeframe="today 12-m", geo="US")
-
-# State data
-df_states = (
-    pytrends
-      .interest_by_region(resolution="REGION", inc_low_vol=True)
-      .reset_index()
-      .rename(columns={"geoName": "state", "telehealth": "interest"})
-)
+# State abbreviation mapping
 us_state_abbrev = {
     'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
     'Colorado':'CO','Connecticut':'CT','Delaware':'DE','District of Columbia':'DC',
@@ -102,19 +93,20 @@ us_state_abbrev = {
     'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
     'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY'
 }
-df_states["code"] = df_states["state"].map(us_state_abbrev)
-df_states = df_states.dropna(subset=["code"])
-top_state = df_states.sort_values("interest", ascending=False).iloc[0]["state"]
 
-# DMA (metro) data
-df_dmas = (
-    pytrends
-      .interest_by_region(resolution="DMA", inc_low_vol=True)
-      .reset_index()
-      .rename(columns={"geoName": "Metro", "telehealth": "Interest"})
-)
-df_dmas = df_dmas[df_dmas["Interest"] > 0]
-top_dma = df_dmas.sort_values("Interest", ascending=False).head(1)["Metro"].iloc[0]
+# Prepare static fallback for state map
+fallback_value = int(latest_visits)
+static_states = pd.DataFrame({
+    "state": list(us_state_abbrev.keys()),
+    "interest": [fallback_value] * len(us_state_abbrev)
+})
+static_states["code"] = static_states["state"].map(us_state_abbrev)
+
+# DMA (metro) fallback
+static_dmas = pd.DataFrame({
+    "Metro": ["N/A"],
+    "Interest": [0]
+})
 
 # Online Topics (sample)
 topics = {
@@ -129,6 +121,26 @@ top_topic = df_topics.sort_values("Mentions", ascending=False).iloc[0]["Topic"]
 
 # ─── SUMMARY TAB ────────────────────────────────────────────────────────────────
 if section == "🔎 Summary":
+    # Attempt live Trends for summary
+    try:
+        pytrends = TrendReq(hl="en-US", tz=360)
+        pytrends.build_payload(["telehealth"], timeframe="today 12-m", geo="US")
+        live_states = (
+            pytrends.interest_by_region(resolution="REGION", inc_low_vol=True)
+            .reset_index().rename(columns={"geoName":"state","telehealth":"interest"})
+        )
+        live_states["code"] = live_states["state"].map(us_state_abbrev)
+        top_state = live_states.sort_values("interest", ascending=False).iloc[0]["state"]
+        live_dmas = (
+            pytrends.interest_by_region(resolution="DMA", inc_low_vol=True)
+            .reset_index().rename(columns={"geoName":"Metro","telehealth":"Interest"})
+        )
+        live_dmas = live_dmas[live_dmas["Interest"]>0]
+        top_dma = live_dmas.sort_values("Interest", ascending=False).head(1)["Metro"].iloc[0]
+    except TooManyRequestsError:
+        top_state = "(live data unavailable)"
+        top_dma = "(live data unavailable)"
+
     # Executive Summary box
     st.markdown(
         f"""
@@ -142,9 +154,9 @@ if section == "🔎 Summary":
         <strong>📌 Executive Summary</strong>
         <ul style="margin-top:8px; margin-left:20px;">
           <li><strong>Patient Sentiment</strong>: Average score {avg_sentiment:.2f}, with {(df_sent['Sentiment Score']>0).mean()*100:.0f}% positive feedback.</li>
-          <li><strong>Telehealth Trends</strong>: Visits grew {pct_change:.1f}% over the past 12 months, reaching {latest_visits}K/month.</li>
-          <li><strong>Drug Safety Events</strong>: Retrieved {num_events or '–'} recent adverse event reports via OpenFDA.</li>
-          <li><strong>Care Access</strong>: Highest search interest in <em>{top_state}</em>, top metro DMA: <em>{top_dma}</em>.</li>
+          <li><strong>Telehealth Trends</strong>: Visits grew {pct_change:.1f}% over 12 months, reaching {latest_visits}K/month.</li>
+          <li><strong>Drug Safety Events</strong>: Retrieved {num_events or '–'} recent reports via OpenFDA.</li>
+          <li><strong>Care Access</strong>: Top state: <em>{top_state}</em>, top DMA: <em>{top_dma}</em>.</li>
           <li><strong>Online Topics</strong>: Leading topic “{top_topic}” with {df_topics['Mentions'].max()} mentions.</li>
         </ul>
         </div>
@@ -218,27 +230,47 @@ if section == "💊 Drug Safety Events":
 if section == "🗺️ Care Access Map":
     st.subheader("🗺️ Telehealth Search Interest by State (Last 12 Months)")
     try:
-        fig = px.choropleth(
-            df_states,
-            locations="code",
-            locationmode="USA-states",
-            color="interest",
-            scope="usa",
-            color_continuous_scale="Reds",
-            labels={"interest": "Search Intensity"}
+        # live
+        df_states = (
+            TrendReq(hl="en-US", tz=360)
+            .interest_by_region(resolution="REGION", inc_low_vol=True)
+            .reset_index().rename(columns={"geoName":"state","telehealth":"interest"})
         )
-        fig.update_layout(margin=dict(l=0, r=0, t=30, b=0))
-        st.plotly_chart(fig, use_container_width=True)
-    except Exception as e:
-        st.error(f"Could not load state-level data: {e}")
+        df_states["code"] = df_states["state"].map(us_state_abbrev)
+        df_states = df_states.dropna(subset=["code"])
+    except TooManyRequestsError:
+        st.warning("⚠️ Dynamic Trends unavailable, showing static mock.")
+        df_states = static_states.copy()
+
+    fig = px.choropleth(
+        df_states,
+        locations="code",
+        locationmode="USA-states",
+        color="interest",
+        scope="usa",
+        color_continuous_scale="Reds",
+        labels={"interest": "Search Intensity"}
+    )
+    fig.update_layout(margin=dict(l=0, r=0, t=30, b=0))
+    st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Top 10 Metros by Telehealth Search Interest (DMA)")
     try:
-        top10 = df_dmas.sort_values("Interest", ascending=False).head(10).reset_index(drop=True)
-        top10.index = top10.index + 1
-        st.table(top10)
-    except Exception as e:
-        st.info(f"Metro-level data unavailable or low volume: {e}")
+        df_dmas_live = (
+            TrendReq(hl="en-US", tz=360)
+            .interest_by_region(resolution="DMA", inc_low_vol=True)
+            .reset_index()
+            .rename(columns={"geoName":"Metro","telehealth":"Interest"})
+        )
+        df_dmas_live = df_dmas_live[df_dmas_live["Interest"]>0]
+        top10 = df_dmas_live.sort_values("Interest", ascending=False).head(10).reset_index(drop=True)
+    except TooManyRequestsError:
+        st.warning("⚠️ Metro-level live data unavailable, showing static mock.")
+        top10 = static_dmas.copy()
+        top10.index = range(1, len(top10)+1)
+
+    top10.index = top10.index + 1
+    st.table(top10)
 
 # ─── ONLINE PATIENT TOPICS ───────────────────────────────────────────────────────
 if section == "💬 Online Patient Topics":
