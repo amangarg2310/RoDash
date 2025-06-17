@@ -78,6 +78,9 @@ if section == "🧠 Patient Sentiment":
     df["Sentiment"] = df["Sentiment Score"].apply(lambda x: "Positive" if x > 0 else "Negative")
     st.dataframe(df)
 
+    # Shift index to start at 1
+    df.index = df.index + 1
+
     st.subheader("Top Words from Patient Feedback")
     text = " ".join(feedback)
     wc = WordCloud(width=800, height=400, background_color='white').generate(text)
