@@ -84,16 +84,14 @@ if section == "🧠 Patient Sentiment":
     # Display as a clean table
     st.table(df)
 
-    # Word cloud remains unchanged
-st.subheader("Top Words from Patient Feedback")
-text = " ".join(feedback)
-
-# Make the cloud smaller
-wc = WordCloud(
-    width=400,    # half of 800
-    height=200,   # half of 400
-    background_color="white"
-).generate(text)
+# Word cloud remains unchanged
+    st.subheader("Top Words from Patient Feedback")
+    text = " ".join(feedback)
+    wc = WordCloud(width=800, height=400, background_color="white").generate(text)
+    fig, ax = plt.subplots()
+    ax.imshow(wc, interpolation="bilinear")
+    ax.axis("off")
+    st.pyplot(fig)
 
 # Shrink the figure canvas too
 fig, ax = plt.subplots(figsize=(6, 3))  # width, height in inches
