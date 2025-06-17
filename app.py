@@ -34,15 +34,19 @@ st.markdown("""
 # ---- SHOW RO LOGO AT THE TOP ----
 from PIL import Image
 
-# Add whitespace padding above
-st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
+# 1) Extra vertical whitespace at the very top
+st.markdown("<br><br><br><br>", unsafe_allow_html=True)
 
-# Load and display logo left-aligned with padding below
+# 2) Load Ro logo
 logo = Image.open("ro_Logo.jpg")
-st.image(logo, width=80)
 
-# Add small space after logo
-st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+# 3) Left-align the logo in a narrow column
+col1, col2 = st.columns([1, 9])
+with col1:
+    st.image(logo, width=80)
+
+# 4) Small spacer below the logo
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ---- SECTION TITLES + NAVIGATION ----
 section_titles = {
