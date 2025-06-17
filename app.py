@@ -124,7 +124,29 @@ df_topics = pd.DataFrame(topics.items(), columns=["Topic", "Mentions"])
 top_topic = df_topics.sort_values("Mentions", ascending=False).iloc[0]["Topic"]
 
 # ─── SUMMARY TAB ────────────────────────────────────────────────────────────────
-if section == "🔎 Summary":
+t.markdown(
+        f"""
+        <div style="
+            background-color: #FFFFFF;
+            border: 1px solid #DDDDDD;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        ">
+        <strong>📌 Executive Summary</strong>
+        <ul style="margin-top:8px; margin-left:20px;">
+          <li><strong>Patient Sentiment</strong>: Average score {avg_sentiment:.2f}, with {(df_sent['Sentiment Score']>0).mean()*100:.0f}% positive feedback.</li>
+          <li><strong>Telehealth Trends</strong>: Visits grew {pct_change:.1f}% over the past 12 months, reaching {latest_visits}K per month.</li>
+          <li><strong>Drug Safety Events</strong>: Retrieved {num_events or '–'} recent adverse event reports via OpenFDA.</li>
+          <li><strong>Care Access</strong>: Highest search interest in <em>{top_state}</em>, top metro DMA: <em>{top_dma}</em>.</li>
+          <li><strong>Online Topics</strong>: Leading topic “{top_topic}” with {df_topics['Mentions'].max()} mentions.</li>
+        </ul>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # ─── Key Insights at a Glance ────────────────────────────────────────
     st.header("📋 Key Insights at a Glance")
     c1, c2 = st.columns(2)
     with c1:
@@ -136,10 +158,10 @@ if section == "🔎 Summary":
         st.metric("12-Month Telehealth Δ", f"{pct_change:.1f}%")
         st.metric("Top State by Search", top_state)
         st.metric("Top Metro (DMA)", top_dma)
+
     st.markdown("---")
     st.subheader("🔍 Top Patient Topic Online")
     st.write(f"**{top_topic}** ({df_topics['Mentions'].max()} mentions)")
-    st.stop()
 
 # ─── PATIENT SENTIMENT ───────────────────────────────────────────────────────────
 if section == "🧠 Patient Sentiment":
