@@ -9,9 +9,11 @@ from pytrends.request import TrendReq
 from pytrends.exceptions import TooManyRequestsError
 
 # ─── Page & Brand Setup ─────────────────────────────────────────────────────────
-st.set_page_config(layout="wide",
-                   page_title="Voice of the Patient Pulseboard",
-                   page_icon="💊")
+st.set_page_config(
+    layout="wide",
+    page_title="Voice of the Patient Pulseboard",
+    page_icon="💊"
+)
 
 st.markdown("""
     <style>
@@ -41,13 +43,16 @@ section_titles = {
     "🗺️ Care Access Map": "🗺️ Care Access Map",
     "💬 Online Patient Topics": "💬 Online Patient Topics"
 }
-section = st.sidebar.radio("📊 Select Dashboard Section",
-                           list(section_titles.keys()))
+section = st.sidebar.radio(
+    "📊 Select Dashboard Section",
+    list(section_titles.keys())
+)
 st.title(section_titles[section])
-st.markdown("Real-time insights inspired by Ro’s mission to serve every patient across every county.")
+st.markdown(
+    "Real-time insights inspired by Ro’s mission to serve every patient across every county."
+)
 
 # ─── PRE-COMPUTE DATA FOR SUMMARY ───────────────────────────────────────────────
-# Patient Sentiment
 feedback = [
     "Loved how easy the prescription delivery was!",
     "Felt like the wait time was too long.",
@@ -59,17 +64,17 @@ df_sent = pd.DataFrame(feedback, columns=["Feedback"])
 df_sent["Sentiment Score"] = [0.8, -0.4, 0.9, -0.6, 0.7]
 avg_sentiment = df_sent["Sentiment Score"].mean()
 
-# Telehealth Trends (mock data)
 telehealth_data = pd.DataFrame({
     "Month": pd.date_range("2022-01-01", periods=12, freq='M'),
     "Visits (Thousands)": [50, 55, 60, 58, 61, 66, 70, 68, 72, 75, 80, 85]
 })
-pct_change = ((telehealth_data["Visits (Thousands)"].iloc[-1] -
-               telehealth_data["Visits (Thousands)"].iloc[0]) /
-              telehealth_data["Visits (Thousands)"].iloc[0]) * 100
+pct_change = (
+    (telehealth_data["Visits (Thousands)"].iloc[-1]
+     - telehealth_data["Visits (Thousands)"].iloc[0])
+    / telehealth_data["Visits (Thousands)"].iloc[0]
+) * 100
 latest_visits = telehealth_data["Visits (Thousands)"].iloc[-1]
 
-# Drug Safety Events
 try:
     resp = requests.get(
         "https://api.fda.gov/drug/event.json"
@@ -94,7 +99,7 @@ us_state_abbrev = {
     'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY'
 }
 
-# Prepare static fallback for state map
+# Fallback for state map
 fallback_value = int(latest_visits)
 static_states = pd.DataFrame({
     "state": list(us_state_abbrev.keys()),
@@ -102,85 +107,45 @@ static_states = pd.DataFrame({
 })
 static_states["code"] = static_states["state"].map(us_state_abbrev)
 
-# DMA (metro) fallback
+# Fallback for DMA table
 static_dmas = pd.DataFrame({
-    "Metro": ["N/A"],
-    "Interest": [0]
+    "Metro": ["N/A"] * 10,
+    "Interest": [0] * 10
 })
-
-# Online Topics (sample)
-topics = {
-    "Hair loss treatment": 120,
-    "ED telehealth": 90,
-    "Ro reviews": 75,
-    "Testosterone therapy": 60,
-    "Weight loss meds": 55
-}
-df_topics = pd.DataFrame(topics.items(), columns=["Topic", "Mentions"])
-top_topic = df_topics.sort_values("Mentions", ascending=False).iloc[0]["Topic"]
 
 # ─── SUMMARY TAB ────────────────────────────────────────────────────────────────
 if section == "🔎 Summary":
-    # Attempt live Trends for summary
-    try:
-        pytrends = TrendReq(hl="en-US", tz=360)
-        pytrends.build_payload(["telehealth"], timeframe="today 12-m", geo="US")
-        live_states = (
-            pytrends.interest_by_region(resolution="REGION", inc_low_vol=True)
-            .reset_index().rename(columns={"geoName":"state","telehealth":"interest"})
-        )
-        live_states["code"] = live_states["state"].map(us_state_abbrev)
-        top_state = live_states.sort_values("interest", ascending=False).iloc[0]["state"]
-        live_dmas = (
-            pytrends.interest_by_region(resolution="DMA", inc_low_vol=True)
-            .reset_index().rename(columns={"geoName":"Metro","telehealth":"Interest"})
-        )
-        live_dmas = live_dmas[live_dmas["Interest"]>0]
-        top_dma = live_dmas.sort_values("Interest", ascending=False).head(1)["Metro"].iloc[0]
-    except TooManyRequestsError:
-        top_state = "(live data unavailable)"
-        top_dma = "(live data unavailable)"
-
-    # Executive Summary box
+    # You can replace the HTML below with your own text & analysis
     st.markdown(
-        f"""
+        """
         <div style="
             background-color: #FFFFFF;
             border: 1px solid #DDDDDD;
-            padding: 16px;
+            padding: 20px;
             border-radius: 8px;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         ">
-        <strong>📌 Executive Summary</strong>
-        <ul style="margin-top:8px; margin-left:20px;">
-          <li><strong>Patient Sentiment</strong>: Average score {avg_sentiment:.2f}, with {(df_sent['Sentiment Score']>0).mean()*100:.0f}% positive feedback.</li>
-          <li><strong>Telehealth Trends</strong>: Visits grew {pct_change:.1f}% over 12 months, reaching {latest_visits}K/month.</li>
-          <li><strong>Drug Safety Events</strong>: Retrieved {num_events or '–'} recent reports via OpenFDA.</li>
-          <li><strong>Care Access</strong>: Top state: <em>{top_state}</em>, top DMA: <em>{top_dma}</em>.</li>
-          <li><strong>Online Topics</strong>: Leading topic “{top_topic}” with {df_topics['Mentions'].max()} mentions.</li>
+        <h4>📌 Executive Summary</h4>
+        <p>
+          Welcome to the high-level overview. Here you can drop in your own analysis and findings for
+          stakeholders—no code needed. For example:
+        </p>
+        <ul>
+          <li>Overall patient sentiment remains positive, with an average score of 0.28.</li>
+          <li>Telehealth adoption grew ~70% year-over-year, now at 85K visits/month.</li>
+          <li>We observed 5 recent OpenFDA reports on the sample drug minoxidil.</li>
+          <li>Search interest by state and metro is currently being updated—please check back later.</li>
+          <li>Key online conversations center around “Hair loss treatment.”</li>
         </ul>
+        <p style="font-style:italic; margin-top:10px;">
+          *Customize this box with any narrative, context, or executive commentary you’d like.*
+        </p>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    # Key Insights metrics
-    st.header("📋 Key Insights at a Glance")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.metric("Avg. Sentiment Score", f"{avg_sentiment:.2f}")
-        st.metric("Recent Visits (K)", f"{latest_visits}")
-        if num_events is not None:
-            st.metric("Sample Drug Events", f"{num_events}")
-    with c2:
-        st.metric("12-Month Telehealth Δ", f"{pct_change:.1f}%")
-        st.metric("Top State by Search", top_state)
-        st.metric("Top Metro (DMA)", top_dma)
-
-    st.markdown("---")
-    st.subheader("🔍 Top Patient Topic Online")
-    st.write(f"**{top_topic}** ({df_topics['Mentions'].max()} mentions)")
-
+    # Stop here—no metrics or charts in the Summary tab
     st.stop()
 
 # ─── PATIENT SENTIMENT ───────────────────────────────────────────────────────────
@@ -230,16 +195,17 @@ if section == "💊 Drug Safety Events":
 if section == "🗺️ Care Access Map":
     st.subheader("🗺️ Telehealth Search Interest by State (Last 12 Months)")
     try:
-        # live
+        pytrends = TrendReq(hl="en-US", tz=360)
+        pytrends.build_payload(["telehealth"], timeframe="today 12-m", geo="US")
         df_states = (
-            TrendReq(hl="en-US", tz=360)
-            .interest_by_region(resolution="REGION", inc_low_vol=True)
-            .reset_index().rename(columns={"geoName":"state","telehealth":"interest"})
+            pytrends.interest_by_region(resolution="REGION", inc_low_vol=True)
+            .reset_index()
+            .rename(columns={"geoName": "state", "telehealth": "interest"})
         )
         df_states["code"] = df_states["state"].map(us_state_abbrev)
         df_states = df_states.dropna(subset=["code"])
-    except TooManyRequestsError:
-        st.warning("⚠️ Dynamic Trends unavailable, showing static mock.")
+    except (TooManyRequestsError, KeyError):
+        st.warning("⚠️ Live Trends unavailable — showing static fallback.")
         df_states = static_states.copy()
 
     fig = px.choropleth(
@@ -256,18 +222,23 @@ if section == "🗺️ Care Access Map":
 
     st.subheader("Top 10 Metros by Telehealth Search Interest (DMA)")
     try:
+        pytrends = TrendReq(hl="en-US", tz=360)
+        pytrends.build_payload(["telehealth"], timeframe="today 12-m", geo="US")
         df_dmas_live = (
-            TrendReq(hl="en-US", tz=360)
-            .interest_by_region(resolution="DMA", inc_low_vol=True)
+            pytrends.interest_by_region(resolution="DMA", inc_low_vol=True)
             .reset_index()
-            .rename(columns={"geoName":"Metro","telehealth":"Interest"})
+            .rename(columns={"geoName": "Metro", "telehealth": "Interest"})
         )
-        df_dmas_live = df_dmas_live[df_dmas_live["Interest"]>0]
-        top10 = df_dmas_live.sort_values("Interest", ascending=False).head(10).reset_index(drop=True)
-    except TooManyRequestsError:
-        st.warning("⚠️ Metro-level live data unavailable, showing static mock.")
+        df_dmas_live = df_dmas_live[df_dmas_live["Interest"] > 0]
+        top10 = (
+            df_dmas_live
+            .sort_values("Interest", ascending=False)
+            .head(10)
+            .reset_index(drop=True)
+        )
+    except (TooManyRequestsError, KeyError):
+        st.warning("⚠️ Metro-level live data unavailable — showing static fallback.")
         top10 = static_dmas.copy()
-        top10.index = range(1, len(top10)+1)
 
     top10.index = top10.index + 1
     st.table(top10)
