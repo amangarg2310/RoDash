@@ -112,13 +112,15 @@ if section == "💊 Drug Safety Events":
 
 if section == "🗺️ Care Access Map":
     st.subheader("🗺️ Telehealth Search Interest by State (Last 12 Months)")
-    try:
-        from pytrends.request import TrendReq
 
-        # 1) Initialize and fetch by region
-        pytrends = TrendReq(hl="en-US", tz=360)
-        kw = ["telehealth"]
-        pytrends.build_payload(kw, timeframe="today 12-m", geo="US")
+    # 1) Initialize pytrends & payload
+    from pytrends.request import TrendReq
+    pytrends = TrendReq(hl="en-US", tz=360)
+    kw = ["telehealth"]
+    pytrends.build_payload(kw, timeframe="today 12-m", geo="US")
+
+    # 2) State-level choropleth
+    try:
         df_states = (
             pytrends
             .interest_by_region(resolution="REGION", inc_low_vol=True)
@@ -126,7 +128,7 @@ if section == "🗺️ Care Access Map":
             .rename(columns={"geoName": "state", "telehealth": "interest"})
         )
 
-        # 2) Map full state names to two-letter codes
+        # Map full state names → USPS codes
         us_state_abbrev = {
             'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
             'Colorado':'CO','Connecticut':'CT','Delaware':'DE','District of Columbia':'DC',
@@ -143,7 +145,6 @@ if section == "🗺️ Care Access Map":
         df_states["state_code"] = df_states["state"].map(us_state_abbrev)
         df_states = df_states.dropna(subset=["state_code"])
 
-        # 3) Draw the choropleth
         fig = px.choropleth(
             df_states,
             locations="state_code",
@@ -157,39 +158,29 @@ if section == "🗺️ Care Access Map":
         st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
-        st.error(f"Could not load state‐level data ({e})")
+        st.error(f"Could not load state-level data: {e}")
 
-    # 4) Top 10 metro areas by interest
-    st.subheader("Top 10 Metro Areas by Telehealth Search Interest")
+    # 3) Top 10 DMA (metro) markets
+    st.subheader("Top 10 Metros by Telehealth Search Interest (DMA)")
+
     try:
-        df_cities = (
+        df_dmas = (
             pytrends
-            .interest_by_region(resolution="CITY", inc_low_vol=True)
+            .interest_by_region(resolution="DMA", inc_low_vol=True)
             .reset_index()
-            .rename(columns={"geoName": "geo", "telehealth": "interest"})
+            .rename(columns={"geoName": "Metro", "telehealth": "Interest"})
         )
-
-        # Keep only non-zero interest and sort
-        df_cities = df_cities[df_cities["interest"] > 0]
-
-        # Split "geo" into City and State (assumes format "City, ST")
-        city_state = df_cities["geo"].str.split(", ", expand=True)
-        df_cities["City"]  = city_state[0]
-        df_cities["State"] = city_state[1].fillna("")
-
-        # Take top 10 and only the columns you want
+        # Filter, sort, take top 10, reset index
         top10 = (
-            df_cities
-            .sort_values("interest", ascending=False)
+            df_dmas[df_dmas["Interest"] > 0]
+            .sort_values("Interest", ascending=False)
             .head(10)
-            .reset_index(drop=True)[["City", "State", "interest"]]
-            .rename(columns={"interest": "Interest"})
+            .reset_index(drop=True)
         )
-
         st.table(top10)
 
-    except Exception:
-        st.info("City‐level data unavailable or too low volume.")
+    except Exception as e:
+        st.info(f"Metro-level data unavailable or low volume: {e}")
 
 if section == "💬 Online Patient Topics":
     st.subheader("Trending Topics Among Patients (Sample)")
