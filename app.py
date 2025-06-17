@@ -34,7 +34,7 @@ st.markdown("""
 # ---- SHOW RO LOGO AT THE TOP ----
 from PIL import Image
 
-logo = Image.open("ro_Logo.jpeg")
+logo = Image.open("ro_Logo.jpg")
 col1, col2, col3 = st.columns([1, 4, 1])
 with col2:
     st.image(logo, width=80)
