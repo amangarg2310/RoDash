@@ -111,9 +111,55 @@ if section == "💊 Drug Safety Events":
         st.error("API limit reached or unavailable.")
 
 if section == "🗺️ Care Access Map":
-    st.subheader("Where Ro Makes an Impact")
-    st.image("https://www.kff.org/wp-content/uploads/2022/11/healthcare-deserts-map.png", use_column_width=True)
-    st.markdown("Visualizing healthcare deserts Ro helps close across the U.S.")
+    st.subheader("🗺️ U.S. Telehealth Search Interest Heatmap")
+
+    try:
+        # 1) Import & initialize pytrends
+        from pytrends.request import TrendReq
+        pytrends = TrendReq(hl="en-US", tz=360)
+
+        # 2) Build payload for “telehealth” over the past 12 months in the U.S.
+        kw_list = ["telehealth"]
+        pytrends.build_payload(kw_list, timeframe="today 12-m", geo="US")
+
+        # 3) Fetch interest by state
+        df_states = (
+            pytrends
+            .interest_by_region(resolution="REGION", inc_low_vol=True, inc_geo_code=True)
+            .reset_index()
+            .rename(columns={
+                "geoName": "state",
+                "geoCode": "state_code",
+                "telehealth": "interest"
+            })
+        )
+
+        # 4) Plotly choropleth map
+        fig = px.choropleth(
+            df_states,
+            locations="state_code",
+            locationmode="USA-states",
+            color="interest",
+            scope="usa",
+            color_continuous_scale="Reds",
+            labels={"interest": "Search Interest"}
+        )
+        fig.update_layout(margin=dict(l=0, r=0, t=30, b=0))
+        st.plotly_chart(fig, use_container_width=True)
+
+        # 5) Top 10 cities by interest
+        st.subheader("Top 10 Metro Areas by Telehealth Search Interest")
+        df_cities = (
+            pytrends
+            .interest_by_region(resolution="CITY", inc_low_vol=True)
+            .reset_index()
+            .rename(columns={"geoName": "city", "telehealth": "interest"})
+        )
+        top_cities = df_cities.sort_values("interest", ascending=False).head(10)
+        st.table(top_cities[["city", "interest"]].style.format({"interest": "{:.0f}"}))
+
+    except Exception as e:
+        st.error("🚨 Could not load dynamic telehealth data. Ensure `pytrends` is installed and your internet connection is active.")
 
 if section == "💬 Online Patient Topics":
     st.subheader("Trending Topics Among Patients (Sample)")
