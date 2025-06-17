@@ -33,13 +33,17 @@ st.markdown("""
 
 # ---- SHOW RO LOGO AT THE TOP ----
 from PIL import Image
+import streamlit as st
 
+# Load Ro logo
 logo = Image.open("ro_Logo.jpg")
-col1, col2, col3 = st.columns([1, 4, 1])
-with col2:
-    st.image(logo, width=80)
 
-st.markdown(" ")
+# Add vertical spacing and left-align the logo
+st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
+
+col1, col2 = st.columns([1, 9])
+with col1:
+    st.image(logo, width=80)
 
 # ---- SECTION TITLES + NAVIGATION ----
 section_titles = {
