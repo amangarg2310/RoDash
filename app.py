@@ -32,3 +32,68 @@ section = st.sidebar.radio("Select Dashboard Section", [
     "🗺️ Care Access Map",
     "💬 Online Patient Topics"
 ])
+if section == "🧠 Patient Sentiment":
+    st.subheader("What patients are saying")
+    feedback = [
+        "Loved how easy the prescription delivery was!",
+        "Felt like the wait time was too long.",
+        "Super convenient! The online consult saved me time.",
+        "Didn't feel the doctor listened.",
+        "Love how discreet the packaging was."
+    ]
+    df = pd.DataFrame(feedback, columns=["Feedback"])
+    df["Sentiment Score"] = [0.8, -0.4, 0.9, -0.6, 0.7]
+    df["Sentiment"] = df["Sentiment Score"].apply(lambda x: "Positive" if x > 0 else "Negative")
+    st.dataframe(df)
+
+    st.subheader("Top Words from Patient Feedback")
+    text = " ".join(feedback)
+    wc = WordCloud(width=800, height=400, background_color='white').generate(text)
+    fig, ax = plt.subplots()
+    ax.imshow(wc, interpolation='bilinear')
+    ax.axis("off")
+    st.pyplot(fig)
+
+if section == "📈 Telehealth Trends":
+    st.subheader("U.S. Telehealth Visit Trends")
+    telehealth_data = pd.DataFrame({
+        "Month": pd.date_range("2022-01-01", periods=12, freq='M'),
+        "Visits (Thousands)": [50, 55, 60, 58, 61, 66, 70, 68, 72, 75, 80, 85]
+    })
+    fig = px.line(telehealth_data, x="Month", y="Visits (Thousands)",
+                  title="Telehealth Growth Over Time", markers=True,
+                  template="plotly_white", color_discrete_sequence=["#FF0050"])
+    st.plotly_chart(fig, use_container_width=True)
+
+if section == "💊 Drug Safety Events":
+    st.subheader("Latest Drug Event Reports (OpenFDA)")
+    query = "minoxidil"
+    url = f"https://api.fda.gov/drug/event.json?search=patient.drug.medicinalproduct:{query}&limit=5"
+    r = requests.get(url)
+    if r.status_code == 200:
+        events = r.json().get("results", [])
+        for e in events:
+            reactions = ", ".join([r["reactionmeddrapt"] for r in e["patient"]["reaction"]])
+            st.write(f"**Reported Reactions**: {reactions}")
+    else:
+        st.error("API limit reached or unavailable.")
+
+if section == "🗺️ Care Access Map":
+    st.subheader("Where Ro Makes an Impact")
+    st.image("https://www.kff.org/wp-content/uploads/2022/11/healthcare-deserts-map.png", use_column_width=True)
+    st.markdown("Visualizing healthcare deserts Ro helps close across the U.S.")
+
+if section == "💬 Online Patient Topics":
+    st.subheader("Trending Topics Among Patients (Sample)")
+    topics = {
+        "Hair loss treatment": 120,
+        "ED telehealth": 90,
+        "Ro reviews": 75,
+        "Testosterone therapy": 60,
+        "Weight loss meds": 55
+    }
+    df = pd.DataFrame(topics.items(), columns=["Topic", "Mentions"])
+    fig = px.bar(df, x="Topic", y="Mentions", title="What Patients Are Talking About",
+                 template="plotly_white", color_discrete_sequence=["#FF0050"])
+    st.plotly_chart(fig, use_container_width=True)
+
