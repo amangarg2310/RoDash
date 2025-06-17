@@ -14,7 +14,6 @@ st.set_page_config(
     page_title="Voice of the Patient Pulseboard",
     page_icon="💊"
 )
-
 st.markdown("""
     <style>
         body { background-color: #FAF9F6; color: #1C1C1C; }
@@ -52,7 +51,8 @@ st.markdown(
     "Real-time insights inspired by Ro’s mission to serve every patient across every county."
 )
 
-# ─── PRE-COMPUTE DATA FOR SUMMARY ───────────────────────────────────────────────
+# ─── PRE-COMPUTE & GLOBALS ───────────────────────────────────────────────────────
+# Patient Sentiment Data
 feedback = [
     "Loved how easy the prescription delivery was!",
     "Felt like the wait time was too long.",
@@ -64,6 +64,7 @@ df_sent = pd.DataFrame(feedback, columns=["Feedback"])
 df_sent["Sentiment Score"] = [0.8, -0.4, 0.9, -0.6, 0.7]
 avg_sentiment = df_sent["Sentiment Score"].mean()
 
+# Telehealth mock timeseries
 telehealth_data = pd.DataFrame({
     "Month": pd.date_range("2022-01-01", periods=12, freq='M'),
     "Visits (Thousands)": [50, 55, 60, 58, 61, 66, 70, 68, 72, 75, 80, 85]
@@ -75,6 +76,7 @@ pct_change = (
 ) * 100
 latest_visits = telehealth_data["Visits (Thousands)"].iloc[-1]
 
+# Drug Safety count
 try:
     resp = requests.get(
         "https://api.fda.gov/drug/event.json"
@@ -84,7 +86,7 @@ try:
 except:
     num_events = None
 
-# State abbreviation mapping
+# State-to-code map
 us_state_abbrev = {
     'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
     'Colorado':'CO','Connecticut':'CT','Delaware':'DE','District of Columbia':'DC',
@@ -99,23 +101,30 @@ us_state_abbrev = {
     'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY'
 }
 
-# Fallback for state map
+# Static fallback for map/table
 fallback_value = int(latest_visits)
 static_states = pd.DataFrame({
     "state": list(us_state_abbrev.keys()),
-    "interest": [fallback_value] * len(us_state_abbrev)
+    "interest": [fallback_value]*len(us_state_abbrev)
 })
 static_states["code"] = static_states["state"].map(us_state_abbrev)
-
-# Fallback for DMA table
 static_dmas = pd.DataFrame({
-    "Metro": ["N/A"] * 10,
-    "Interest": [0] * 10
+    "Metro": ["N/A"]*10,
+    "Interest": [0]*10
 })
+
+# Online topics — **defined at top** so never NameError
+topics = {
+    "Hair loss treatment": 120,
+    "ED telehealth": 90,
+    "Ro reviews": 75,
+    "Testosterone therapy": 60,
+    "Weight loss meds": 55
+}
 
 # ─── SUMMARY TAB ────────────────────────────────────────────────────────────────
 if section == "🔎 Summary":
-    # You can replace the HTML below with your own text & analysis
+    # Executive Summary — replace the text below with your own analysis!
     st.markdown(
         """
         <div style="
@@ -126,26 +135,20 @@ if section == "🔎 Summary":
             margin-bottom: 20px;
         ">
         <h4>📌 Executive Summary</h4>
-        <p>
-          Welcome to the high-level overview. Here you can drop in your own analysis and findings for
-          stakeholders—no code needed. For example:
-        </p>
         <ul>
-          <li>Overall patient sentiment remains positive, with an average score of 0.28.</li>
-          <li>Telehealth adoption grew ~70% year-over-year, now at 85K visits/month.</li>
-          <li>We observed 5 recent OpenFDA reports on the sample drug minoxidil.</li>
-          <li>Search interest by state and metro is currently being updated—please check back later.</li>
-          <li>Key online conversations center around “Hair loss treatment.”</li>
+          <li>Overall sentiment remains strong (avg score 0.28).</li>
+          <li>Telehealth visits up ~70% year-over-year to 85K/mo.</li>
+          <li>5 recent OpenFDA reports for minoxidil.</li>
+          <li>Live state/metro search data updating soon.</li>
+          <li>Top online topic: “Hair loss treatment.”</li>
         </ul>
-        <p style="font-style:italic; margin-top:10px;">
-          *Customize this box with any narrative, context, or executive commentary you’d like.*
+        <p style="font-style:italic;">
+          *Edit this text block with your own commentary.*  
         </p>
         </div>
         """,
         unsafe_allow_html=True
     )
-
-    # Stop here—no metrics or charts in the Summary tab
     st.stop()
 
 # ─── PATIENT SENTIMENT ───────────────────────────────────────────────────────────
@@ -156,9 +159,8 @@ if section == "🧠 Patient Sentiment":
     st.table(df_display)
 
     st.subheader("Top Words from Patient Feedback")
-    text = " ".join(feedback)
-    wc = WordCloud(width=400, height=200, background_color="white").generate(text)
-    fig, ax = plt.subplots(figsize=(6, 3))
+    wc = WordCloud(width=400, height=200, background_color="white").generate(" ".join(feedback))
+    fig, ax = plt.subplots(figsize=(6,3))
     ax.imshow(wc, interpolation="bilinear")
     ax.axis("off")
     st.pyplot(fig)
@@ -200,7 +202,7 @@ if section == "🗺️ Care Access Map":
         df_states = (
             pytrends.interest_by_region(resolution="REGION", inc_low_vol=True)
             .reset_index()
-            .rename(columns={"geoName": "state", "telehealth": "interest"})
+            .rename(columns={"geoName":"state","telehealth":"interest"})
         )
         df_states["code"] = df_states["state"].map(us_state_abbrev)
         df_states = df_states.dropna(subset=["code"])
@@ -215,29 +217,28 @@ if section == "🗺️ Care Access Map":
         color="interest",
         scope="usa",
         color_continuous_scale="Reds",
-        labels={"interest": "Search Intensity"}
+        labels={"interest":"Search Intensity"}
     )
-    fig.update_layout(margin=dict(l=0, r=0, t=30, b=0))
+    fig.update_layout(margin=dict(l=0,r=0,t=30,b=0))
     st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Top 10 Metros by Telehealth Search Interest (DMA)")
     try:
         pytrends = TrendReq(hl="en-US", tz=360)
         pytrends.build_payload(["telehealth"], timeframe="today 12-m", geo="US")
-        df_dmas_live = (
+        df_dmas = (
             pytrends.interest_by_region(resolution="DMA", inc_low_vol=True)
             .reset_index()
-            .rename(columns={"geoName": "Metro", "telehealth": "Interest"})
+            .rename(columns={"geoName":"Metro","telehealth":"Interest"})
         )
-        df_dmas_live = df_dmas_live[df_dmas_live["Interest"] > 0]
+        df_dmas = df_dmas[df_dmas["Interest"]>0]
         top10 = (
-            df_dmas_live
-            .sort_values("Interest", ascending=False)
+            df_dmas.sort_values("Interest", ascending=False)
             .head(10)
             .reset_index(drop=True)
         )
     except (TooManyRequestsError, KeyError):
-        st.warning("⚠️ Metro-level live data unavailable — showing static fallback.")
+        st.warning("⚠️ Metro data unavailable — showing static fallback.")
         top10 = static_dmas.copy()
 
     top10.index = top10.index + 1
@@ -246,7 +247,7 @@ if section == "🗺️ Care Access Map":
 # ─── ONLINE PATIENT TOPICS ───────────────────────────────────────────────────────
 if section == "💬 Online Patient Topics":
     st.subheader("Trending Topics Among Patients (Sample)")
-    df_topics = pd.DataFrame(topics.items(), columns=["Topic", "Mentions"])
+    df_topics = pd.DataFrame(list(topics.items()), columns=["Topic","Mentions"])
     fig = px.bar(
         df_topics,
         x="Topic",
