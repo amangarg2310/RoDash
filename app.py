@@ -166,11 +166,28 @@ if section == "🗺️ Care Access Map":
             pytrends
             .interest_by_region(resolution="CITY", inc_low_vol=True)
             .reset_index()
-            .rename(columns={"geoName": "city", "telehealth": "interest"})
+            .rename(columns={"geoName": "geo", "telehealth": "interest"})
         )
+
+        # Keep only non-zero interest and sort
         df_cities = df_cities[df_cities["interest"] > 0]
-        top10 = df_cities.sort_values("interest", ascending=False).head(10)
-        st.table(top10[["city", "interest"]].astype({"interest": "int"}))
+
+        # Split "geo" into City and State (assumes format "City, ST")
+        city_state = df_cities["geo"].str.split(", ", expand=True)
+        df_cities["City"]  = city_state[0]
+        df_cities["State"] = city_state[1].fillna("")
+
+        # Take top 10 and only the columns you want
+        top10 = (
+            df_cities
+            .sort_values("interest", ascending=False)
+            .head(10)
+            .reset_index(drop=True)[["City", "State", "interest"]]
+            .rename(columns={"interest": "Interest"})
+        )
+
+        st.table(top10)
+
     except Exception:
         st.info("City‐level data unavailable or too low volume.")
 
