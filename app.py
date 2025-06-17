@@ -161,7 +161,7 @@ if section == "📈 Telehealth Trends":
     st.plotly_chart(fig, use_container_width=True)
 
 # ─── DRUG SAFETY EVENTS ─────────────────────────────────────────────────────────
-if section == "💊 Drug Safety Events":
+if section == "💊 Drug Side Effect cases - Minoxidil":
     st.subheader("Latest Drug Event Reports (OpenFDA)")
     r = requests.get(
         "https://api.fda.gov/drug/event.json"
