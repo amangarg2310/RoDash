@@ -66,6 +66,7 @@ st.markdown("Real-time insights inspired by Ro’s mission to serve every patien
 
 if section == "🧠 Patient Sentiment":
     st.subheader("What patients are saying")
+
     feedback = [
         "Loved how easy the prescription delivery was!",
         "Felt like the wait time was too long.",
@@ -76,19 +77,19 @@ if section == "🧠 Patient Sentiment":
     df = pd.DataFrame(feedback, columns=["Feedback"])
     df["Sentiment Score"] = [0.8, -0.4, 0.9, -0.6, 0.7]
     df["Sentiment"] = df["Sentiment Score"].apply(lambda x: "Positive" if x > 0 else "Negative")
-    st.dataframe(df)
 
     # Shift index to start at 1
     df.index = df.index + 1
 
-    # Display as a table (hides the ugly 0-based index)
+    # Display as a clean table
     st.table(df)
 
+    # Word cloud remains unchanged
     st.subheader("Top Words from Patient Feedback")
     text = " ".join(feedback)
-    wc = WordCloud(width=800, height=400, background_color='white').generate(text)
+    wc = WordCloud(width=800, height=400, background_color="white").generate(text)
     fig, ax = plt.subplots()
-    ax.imshow(wc, interpolation='bilinear')
+    ax.imshow(wc, interpolation="bilinear")
     ax.axis("off")
     st.pyplot(fig)
 
