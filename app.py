@@ -33,8 +33,13 @@ st.markdown("""
 
 # ---- SHOW RO LOGO AT THE TOP ----
 from PIL import Image
-logo = Image.open("ro_Logo.jpg")
-st.image(logo, width=100)
+
+logo = Image.open("ro_Logo.jpeg")
+col1, col2, col3 = st.columns([1, 4, 1])
+with col2:
+    st.image(logo, width=80)
+
+st.markdown(" ")
 
 # ---- SECTION TITLES + NAVIGATION ----
 section_titles = {
