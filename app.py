@@ -81,6 +81,9 @@ if section == "🧠 Patient Sentiment":
     # Shift index to start at 1
     df.index = df.index + 1
 
+    # Display as a table (hides the ugly 0-based index)
+    st.table(df)
+
     st.subheader("Top Words from Patient Feedback")
     text = " ".join(feedback)
     wc = WordCloud(width=800, height=400, background_color='white').generate(text)
