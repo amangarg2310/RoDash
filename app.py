@@ -111,30 +111,39 @@ if section == "💊 Drug Safety Events":
         st.error("API limit reached or unavailable.")
 
 if section == "🗺️ Care Access Map":
-    st.subheader("🗺️ U.S. Telehealth Search Interest Heatmap")
-
+    st.subheader("🗺️ Telehealth Search Interest by State (Last 12 Months)")
     try:
-        # 1) Import & initialize pytrends
         from pytrends.request import TrendReq
+
+        # 1) Initialize and fetch by region
         pytrends = TrendReq(hl="en-US", tz=360)
-
-        # 2) Build payload for “telehealth” over the past 12 months in the U.S.
-        kw_list = ["telehealth"]
-        pytrends.build_payload(kw_list, timeframe="today 12-m", geo="US")
-
-        # 3) Fetch interest by state
+        kw = ["telehealth"]
+        pytrends.build_payload(kw, timeframe="today 12-m", geo="US")
         df_states = (
             pytrends
-            .interest_by_region(resolution="REGION", inc_low_vol=True, inc_geo_code=True)
+            .interest_by_region(resolution="REGION", inc_low_vol=True)
             .reset_index()
-            .rename(columns={
-                "geoName": "state",
-                "geoCode": "state_code",
-                "telehealth": "interest"
-            })
+            .rename(columns={"geoName": "state", "telehealth": "interest"})
         )
 
-        # 4) Plotly choropleth map
+        # 2) Map full state names to two-letter codes
+        us_state_abbrev = {
+            'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
+            'Colorado':'CO','Connecticut':'CT','Delaware':'DE','District of Columbia':'DC',
+            'Florida':'FL','Georgia':'GA','Hawaii':'HI','Idaho':'ID','Illinois':'IL',
+            'Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA',
+            'Maine':'ME','Maryland':'MD','Massachusetts':'MA','Michigan':'MI','Minnesota':'MN',
+            'Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV',
+            'New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY',
+            'North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
+            'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+            'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
+            'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY'
+        }
+        df_states["state_code"] = df_states["state"].map(us_state_abbrev)
+        df_states = df_states.dropna(subset=["state_code"])
+
+        # 3) Draw the choropleth
         fig = px.choropleth(
             df_states,
             locations="state_code",
@@ -142,24 +151,28 @@ if section == "🗺️ Care Access Map":
             color="interest",
             scope="usa",
             color_continuous_scale="Reds",
-            labels={"interest": "Search Interest"}
+            labels={"interest": "Search Intensity"}
         )
         fig.update_layout(margin=dict(l=0, r=0, t=30, b=0))
         st.plotly_chart(fig, use_container_width=True)
 
-        # 5) Top 10 cities by interest
-        st.subheader("Top 10 Metro Areas by Telehealth Search Interest")
+    except Exception as e:
+        st.error(f"Could not load state‐level data ({e})")
+
+    # 4) Top 10 metro areas by interest
+    st.subheader("Top 10 Metro Areas by Telehealth Search Interest")
+    try:
         df_cities = (
             pytrends
             .interest_by_region(resolution="CITY", inc_low_vol=True)
             .reset_index()
             .rename(columns={"geoName": "city", "telehealth": "interest"})
         )
-        top_cities = df_cities.sort_values("interest", ascending=False).head(10)
-        st.table(top_cities[["city", "interest"]].style.format({"interest": "{:.0f}"}))
-
-    except Exception as e:
-        st.error("🚨 Could not load dynamic telehealth data. Ensure `pytrends` is installed and your internet connection is active.")
+        df_cities = df_cities[df_cities["interest"] > 0]
+        top10 = df_cities.sort_values("interest", ascending=False).head(10)
+        st.table(top10[["city", "interest"]].astype({"interest": "int"}))
+    except Exception:
+        st.info("City‐level data unavailable or too low volume.")
 
 if section == "💬 Online Patient Topics":
     st.subheader("Trending Topics Among Patients (Sample)")
