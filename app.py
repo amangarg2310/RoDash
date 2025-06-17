@@ -261,8 +261,6 @@ except Exception:
         "Interest": [0] * 10
     }, index=range(1, 11)))
 
-    top10.index = top10.index + 1
-    st.table(top10)
 
 # ─── ONLINE PATIENT TOPICS ───────────────────────────────────────────────────────
 if section == "💬 Online Patient Topics":
