@@ -93,11 +93,6 @@ if section == "🧠 Patient Sentiment":
     ax.axis("off")
     st.pyplot(fig)
 
-# Shrink the figure canvas too
-fig, ax = plt.subplots(figsize=(6, 3))  # width, height in inches
-ax.imshow(wc, interpolation="bilinear")
-ax.axis("off")
-st.pyplot(fig)
 
 if section == "📈 Telehealth Trends":
     st.subheader("U.S. Telehealth Visit Trends")
