@@ -36,7 +36,7 @@ section_titles = {
     "🔎 Summary": "🔎 Summary Overview",
     "🧠 Patient Sentiment": "🧠 Patient Sentiment",
     "📈 Telehealth Trends": "📈 Telehealth Trends",
-    "💊 Drug Safety Events": "💊 Drug Safety Events",
+    "💊 Drug Side Effect cases - Minoxidil": "💊 Drug Side Effect cases - Minoxidil",
     "💬 Online Patient Topics": "💬 Online Patient Topics"
 }
 section = st.sidebar.radio(
