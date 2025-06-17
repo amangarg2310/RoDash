@@ -196,19 +196,19 @@ if section == "💊 Drug Safety Events":
 # ─── CARE ACCESS MAP ─────────────────────────────────────────────────────────────
 if section == "🗺️ Care Access Map":
     st.subheader("🗺️ Telehealth Search Interest by State (Last 12 Months)")
-    try:
-        pytrends = TrendReq(hl="en-US", tz=360)
-        pytrends.build_payload(["telehealth"], timeframe="today 12-m", geo="US")
-        df_states = (
-            pytrends.interest_by_region(resolution="REGION", inc_low_vol=True)
-            .reset_index()
-            .rename(columns={"geoName":"state","telehealth":"interest"})
-        )
-        df_states["code"] = df_states["state"].map(us_state_abbrev)
-        df_states = df_states.dropna(subset=["code"])
-    except (TooManyRequestsError, KeyError):
-        st.warning("⚠️ Live Trends unavailable — showing static fallback.")
-        df_states = static_states.copy()
+
+try:
+    pytrends = TrendReq(hl="en-US", tz=360)
+    pytrends.build_payload(["telehealth"], timeframe="today 12-m", geo="US")
+    df_states = (
+        pytrends
+        .interest_by_region(resolution="REGION", inc_low_vol=True)
+        .reset_index()
+        .rename(columns={"geoName": "state", "telehealth": "interest"})
+    )
+
+    df_states["code"] = df_states["state"].map(us_state_abbrev)
+    df_states = df_states.dropna(subset=["code"])
 
     fig = px.choropleth(
         df_states,
@@ -217,29 +217,49 @@ if section == "🗺️ Care Access Map":
         color="interest",
         scope="usa",
         color_continuous_scale="Reds",
-        labels={"interest":"Search Intensity"}
+        labels={"interest": "Search Intensity"}
     )
-    fig.update_layout(margin=dict(l=0,r=0,t=30,b=0))
+    fig.update_layout(margin=dict(l=0, r=0, t=30, b=0))
+    st.plotly_chart(fig, use_container_width=True)
+
+except Exception as e:
+    st.warning("⚠️ Live Trends unavailable — showing static fallback.")
+    fallback_states = pd.DataFrame({
+        "state": list(us_state_abbrev.keys()),
+        "interest": [85 for _ in range(len(us_state_abbrev))],
+        "code": list(us_state_abbrev.values())
+    })
+    fig = px.choropleth(
+        fallback_states,
+        locations="code",
+        locationmode="USA-states",
+        color="interest",
+        scope="usa",
+        color_continuous_scale="Reds",
+        labels={"interest": "Search Intensity"}
+    )
+    fig.update_layout(margin=dict(l=0, r=0, t=30, b=0))
     st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Top 10 Metros by Telehealth Search Interest (DMA)")
-    try:
-        pytrends = TrendReq(hl="en-US", tz=360)
-        pytrends.build_payload(["telehealth"], timeframe="today 12-m", geo="US")
-        df_dmas = (
-            pytrends.interest_by_region(resolution="DMA", inc_low_vol=True)
-            .reset_index()
-            .rename(columns={"geoName":"Metro","telehealth":"Interest"})
-        )
-        df_dmas = df_dmas[df_dmas["Interest"]>0]
-        top10 = (
-            df_dmas.sort_values("Interest", ascending=False)
-            .head(10)
-            .reset_index(drop=True)
-        )
-    except (TooManyRequestsError, KeyError):
-        st.warning("⚠️ Metro data unavailable — showing static fallback.")
-        top10 = static_dmas.copy()
+
+try:
+    df_dmas = (
+        pytrends
+        .interest_by_region(resolution="DMA", inc_low_vol=True)
+        .reset_index()
+        .rename(columns={"geoName": "Metro", "telehealth": "Interest"})
+    )
+    top10 = df_dmas[df_dmas["Interest"] > 0].sort_values("Interest", ascending=False).head(10)
+    top10.index = top10.index + 1
+    st.table(top10)
+
+except Exception:
+    st.warning("⚠️ Metro data unavailable — showing static fallback.")
+    st.table(pd.DataFrame({
+        "Metro": ["N/A"] * 10,
+        "Interest": [0] * 10
+    }, index=range(1, 11)))
 
     top10.index = top10.index + 1
     st.table(top10)
