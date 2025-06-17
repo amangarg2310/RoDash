@@ -5,8 +5,6 @@ import plotly.express as px
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 from PIL import Image
-from pytrends.request import TrendReq
-from pytrends.exceptions import TooManyRequestsError
 
 # ─── Page & Brand Setup ─────────────────────────────────────────────────────────
 st.set_page_config(
@@ -39,7 +37,6 @@ section_titles = {
     "🧠 Patient Sentiment": "🧠 Patient Sentiment",
     "📈 Telehealth Trends": "📈 Telehealth Trends",
     "💊 Drug Safety Events": "💊 Drug Safety Events",
-    "🗺️ Care Access Map": "🗺️ Care Access Map",
     "💬 Online Patient Topics": "💬 Online Patient Topics"
 }
 section = st.sidebar.radio(
@@ -86,34 +83,7 @@ try:
 except:
     num_events = None
 
-# State-to-code map
-us_state_abbrev = {
-    'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
-    'Colorado':'CO','Connecticut':'CT','Delaware':'DE','District of Columbia':'DC',
-    'Florida':'FL','Georgia':'GA','Hawaii':'HI','Idaho':'ID','Illinois':'IL',
-    'Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA',
-    'Maine':'ME','Maryland':'MD','Massachusetts':'MA','Michigan':'MI','Minnesota':'MN',
-    'Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV',
-    'New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY',
-    'North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
-    'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
-    'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT',
-    'Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY'
-}
-
-# Static fallback for map/table
-fallback_value = int(latest_visits)
-static_states = pd.DataFrame({
-    "state": list(us_state_abbrev.keys()),
-    "interest": [fallback_value]*len(us_state_abbrev)
-})
-static_states["code"] = static_states["state"].map(us_state_abbrev)
-static_dmas = pd.DataFrame({
-    "Metro": ["N/A"]*10,
-    "Interest": [0]*10
-})
-
-# Online topics — **defined at top** so never NameError
+# Online topics (sample)
 topics = {
     "Hair loss treatment": 120,
     "ED telehealth": 90,
@@ -124,7 +94,6 @@ topics = {
 
 # ─── SUMMARY TAB ────────────────────────────────────────────────────────────────
 if section == "🔎 Summary":
-    # Executive Summary — replace the text below with your own analysis!
     st.markdown(
         """
         <div style="
@@ -135,16 +104,28 @@ if section == "🔎 Summary":
             margin-bottom: 20px;
         ">
         <h4>📌 Executive Summary</h4>
-        <ul>
-          <li>Overall sentiment remains strong (avg score 0.28).</li>
-          <li>Telehealth visits up ~70% year-over-year to 85K/mo.</li>
-          <li>5 recent OpenFDA reports for minoxidil.</li>
-          <li>Live state/metro search data updating soon.</li>
-          <li>Top online topic: “Hair loss treatment.”</li>
+        <ul style="line-height:1.6;">
+          <li>
+            <strong>Patients aren’t just satisfied—they’re grateful.</strong><br>
+            Phrases like “loved,” “easy,” and “saved me time” dominate feedback, reflecting appreciation for simplicity. A few outliers—like “didn’t feel the doctor listened”—point to an opportunity to humanize virtual care interactions.
+          </li>
+          <li>
+            <strong>Convenience is currency.</strong><br>
+            The most charged words in the word cloud (e.g., easy, delivery, convenient, saved) show value placed on frictionless access often outweighs clinical detail. Streamlining further could deepen loyalty.
+          </li>
+          <li>
+            <strong>Telehealth is gaining real-world momentum—especially among new users.</strong><br>
+            A 70% increase in virtual visits year-over-year signals more patients entering Ro digitally. Focus on onboarding flows and first-time user education is key.
+          </li>
+          <li>
+            <strong>Ro’s medical offerings resonate—but questions linger.</strong><br>
+            OpenFDA reports indicate side effects like headaches and dizziness for minoxidil. Transparency and reassurance in post-purchase messaging could reduce hesitancy.
+          </li>
+          <li>
+            <strong>Hair loss treatment is driving curiosity.</strong><br>
+            Online interest around “Hair loss treatment” outpaces all other topics. Consider educational content, video testimonials, or first-time offers to capitalize on this awareness.
+          </li>
         </ul>
-        <p style="font-style:italic;">
-          *Edit this text block with your own commentary.*  
-        </p>
         </div>
         """,
         unsafe_allow_html=True
@@ -192,75 +173,6 @@ if section == "💊 Drug Safety Events":
             st.write(f"**Reported Reactions**: {reactions}")
     else:
         st.error("API limit reached or unavailable.")
-
-# ─── CARE ACCESS MAP ─────────────────────────────────────────────────────────────
-if section == "🗺️ Care Access Map":
-    st.subheader("🗺️ Telehealth Search Interest by State (Last 12 Months)")
-
-try:
-    pytrends = TrendReq(hl="en-US", tz=360)
-    pytrends.build_payload(["telehealth"], timeframe="today 12-m", geo="US")
-    df_states = (
-        pytrends
-        .interest_by_region(resolution="REGION", inc_low_vol=True)
-        .reset_index()
-        .rename(columns={"geoName": "state", "telehealth": "interest"})
-    )
-
-    df_states["code"] = df_states["state"].map(us_state_abbrev)
-    df_states = df_states.dropna(subset=["code"])
-
-    fig = px.choropleth(
-        df_states,
-        locations="code",
-        locationmode="USA-states",
-        color="interest",
-        scope="usa",
-        color_continuous_scale="Reds",
-        labels={"interest": "Search Intensity"}
-    )
-    fig.update_layout(margin=dict(l=0, r=0, t=30, b=0))
-    st.plotly_chart(fig, use_container_width=True)
-
-except Exception as e:
-    st.warning("⚠️ Live Trends unavailable — showing static fallback.")
-    fallback_states = pd.DataFrame({
-        "state": list(us_state_abbrev.keys()),
-        "interest": [85 for _ in range(len(us_state_abbrev))],
-        "code": list(us_state_abbrev.values())
-    })
-    fig = px.choropleth(
-        fallback_states,
-        locations="code",
-        locationmode="USA-states",
-        color="interest",
-        scope="usa",
-        color_continuous_scale="Reds",
-        labels={"interest": "Search Intensity"}
-    )
-    fig.update_layout(margin=dict(l=0, r=0, t=30, b=0))
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.subheader("Top 10 Metros by Telehealth Search Interest (DMA)")
-
-try:
-    df_dmas = (
-        pytrends
-        .interest_by_region(resolution="DMA", inc_low_vol=True)
-        .reset_index()
-        .rename(columns={"geoName": "Metro", "telehealth": "Interest"})
-    )
-    top10 = df_dmas[df_dmas["Interest"] > 0].sort_values("Interest", ascending=False).head(10)
-    top10.index = top10.index + 1
-    st.table(top10)
-
-except Exception:
-    st.warning("⚠️ Metro data unavailable — showing static fallback.")
-    st.table(pd.DataFrame({
-        "Metro": ["N/A"] * 10,
-        "Interest": [0] * 10
-    }, index=range(1, 11)))
-
 
 # ─── ONLINE PATIENT TOPICS ───────────────────────────────────────────────────────
 if section == "💬 Online Patient Topics":
