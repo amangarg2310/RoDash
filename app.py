@@ -22,7 +22,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("💊 Voice of the Patient Pulseboard")
+# Map section names to display titles (including emojis)
+section_titles = {
+    "🧠 Patient Sentiment": "🧠 Patient Sentiment",
+    "📈 Telehealth Trends": "📈 Telehealth Trends",
+    "💊 Drug Safety Events": "💊 Drug Safety Events",
+    "🗺️ Care Access Map": "🗺️ Care Access Map",
+    "💬 Online Patient Topics": "💬 Online Patient Topics"
+}
+
+# Use the selected section to show a matching title
+st.title(section_titles.get(section, "Voice of the Patient Pulseboard"))
 st.markdown("Real-time insights inspired by Ro's mission to serve every patient across every county.")
 
 section = st.sidebar.radio("Select Dashboard Section", [
