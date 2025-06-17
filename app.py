@@ -8,7 +8,9 @@ from PIL import Image
 from pytrends.request import TrendReq
 
 # ─── Page & Brand Setup ─────────────────────────────────────────────────────────
-st.set_page_config(layout="wide", page_title="Voice of the Patient Pulseboard", page_icon="💊")
+st.set_page_config(layout="wide",
+                   page_title="Voice of the Patient Pulseboard",
+                   page_icon="💊")
 
 st.markdown("""
     <style>
@@ -38,7 +40,8 @@ section_titles = {
     "🗺️ Care Access Map": "🗺️ Care Access Map",
     "💬 Online Patient Topics": "💬 Online Patient Topics"
 }
-section = st.sidebar.radio("📊 Select Dashboard Section", list(section_titles.keys()))
+section = st.sidebar.radio("📊 Select Dashboard Section",
+                           list(section_titles.keys()))
 st.title(section_titles[section])
 st.markdown("Real-time insights inspired by Ro’s mission to serve every patient across every county.")
 
@@ -55,7 +58,7 @@ df_sent = pd.DataFrame(feedback, columns=["Feedback"])
 df_sent["Sentiment Score"] = [0.8, -0.4, 0.9, -0.6, 0.7]
 avg_sentiment = df_sent["Sentiment Score"].mean()
 
-# Telehealth Trends (mock)
+# Telehealth Trends (mock data)
 telehealth_data = pd.DataFrame({
     "Month": pd.date_range("2022-01-01", periods=12, freq='M'),
     "Visits (Thousands)": [50, 55, 60, 58, 61, 66, 70, 68, 72, 75, 80, 85]
@@ -65,10 +68,11 @@ pct_change = ((telehealth_data["Visits (Thousands)"].iloc[-1] -
               telehealth_data["Visits (Thousands)"].iloc[0]) * 100
 latest_visits = telehealth_data["Visits (Thousands)"].iloc[-1]
 
-# Drug Safety Events (sample count)
+# Drug Safety Events
 try:
     resp = requests.get(
-        "https://api.fda.gov/drug/event.json?search=patient.drug.medicinalproduct:minoxidil&limit=5"
+        "https://api.fda.gov/drug/event.json"
+        "?search=patient.drug.medicinalproduct:minoxidil&limit=5"
     ).json()
     num_events = len(resp.get("results", []))
 except:
@@ -81,9 +85,9 @@ pytrends.build_payload(["telehealth"], timeframe="today 12-m", geo="US")
 # State data
 df_states = (
     pytrends
-    .interest_by_region(resolution="REGION", inc_low_vol=True)
-    .reset_index()
-    .rename(columns={"geoName": "state", "telehealth": "interest"})
+      .interest_by_region(resolution="REGION", inc_low_vol=True)
+      .reset_index()
+      .rename(columns={"geoName": "state", "telehealth": "interest"})
 )
 us_state_abbrev = {
     'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA',
@@ -105,14 +109,14 @@ top_state = df_states.sort_values("interest", ascending=False).iloc[0]["state"]
 # DMA (metro) data
 df_dmas = (
     pytrends
-    .interest_by_region(resolution="DMA", inc_low_vol=True)
-    .reset_index()
-    .rename(columns={"geoName": "Metro", "telehealth": "Interest"})
+      .interest_by_region(resolution="DMA", inc_low_vol=True)
+      .reset_index()
+      .rename(columns={"geoName": "Metro", "telehealth": "Interest"})
 )
 df_dmas = df_dmas[df_dmas["Interest"] > 0]
 top_dma = df_dmas.sort_values("Interest", ascending=False).head(1)["Metro"].iloc[0]
 
-# Online Topics
+# Online Topics (sample)
 topics = {
     "Hair loss treatment": 120,
     "ED telehealth": 90,
@@ -124,7 +128,9 @@ df_topics = pd.DataFrame(topics.items(), columns=["Topic", "Mentions"])
 top_topic = df_topics.sort_values("Mentions", ascending=False).iloc[0]["Topic"]
 
 # ─── SUMMARY TAB ────────────────────────────────────────────────────────────────
-t.markdown(
+if section == "🔎 Summary":
+    # Executive Summary box
+    st.markdown(
         f"""
         <div style="
             background-color: #FFFFFF;
@@ -136,7 +142,7 @@ t.markdown(
         <strong>📌 Executive Summary</strong>
         <ul style="margin-top:8px; margin-left:20px;">
           <li><strong>Patient Sentiment</strong>: Average score {avg_sentiment:.2f}, with {(df_sent['Sentiment Score']>0).mean()*100:.0f}% positive feedback.</li>
-          <li><strong>Telehealth Trends</strong>: Visits grew {pct_change:.1f}% over the past 12 months, reaching {latest_visits}K per month.</li>
+          <li><strong>Telehealth Trends</strong>: Visits grew {pct_change:.1f}% over the past 12 months, reaching {latest_visits}K/month.</li>
           <li><strong>Drug Safety Events</strong>: Retrieved {num_events or '–'} recent adverse event reports via OpenFDA.</li>
           <li><strong>Care Access</strong>: Highest search interest in <em>{top_state}</em>, top metro DMA: <em>{top_dma}</em>.</li>
           <li><strong>Online Topics</strong>: Leading topic “{top_topic}” with {df_topics['Mentions'].max()} mentions.</li>
@@ -146,7 +152,7 @@ t.markdown(
         unsafe_allow_html=True
     )
 
-    # ─── Key Insights at a Glance ────────────────────────────────────────
+    # Key Insights metrics
     st.header("📋 Key Insights at a Glance")
     c1, c2 = st.columns(2)
     with c1:
@@ -163,12 +169,11 @@ t.markdown(
     st.subheader("🔍 Top Patient Topic Online")
     st.write(f"**{top_topic}** ({df_topics['Mentions'].max()} mentions)")
 
+    st.stop()
+
 # ─── PATIENT SENTIMENT ───────────────────────────────────────────────────────────
 if section == "🧠 Patient Sentiment":
     st.subheader("What patients are saying")
-    df_sent["Sentiment"] = df_sent["Sentiment Score"].apply(
-        lambda x: "Positive" if x > 0 else "Negative"
-    )
     df_display = df_sent.copy()
     df_display.index = df_display.index + 1
     st.table(df_display)
@@ -198,15 +203,12 @@ if section == "📈 Telehealth Trends":
 # ─── DRUG SAFETY EVENTS ─────────────────────────────────────────────────────────
 if section == "💊 Drug Safety Events":
     st.subheader("Latest Drug Event Reports (OpenFDA)")
-    query = "minoxidil"
-    url = (
-        f"https://api.fda.gov/drug/event.json"
-        f"?search=patient.drug.medicinalproduct:{query}&limit=5"
+    r = requests.get(
+        "https://api.fda.gov/drug/event.json"
+        "?search=patient.drug.medicinalproduct:minoxidil&limit=5"
     )
-    r = requests.get(url)
     if r.status_code == 200:
-        events = r.json().get("results", [])
-        for e in events:
+        for e in r.json().get("results", []):
             reactions = ", ".join(rxn["reactionmeddrapt"] for rxn in e["patient"]["reaction"])
             st.write(f"**Reported Reactions**: {reactions}")
     else:
