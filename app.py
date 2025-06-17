@@ -177,6 +177,10 @@ if section == "🗺️ Care Access Map":
             .head(10)
             .reset_index(drop=True)
         )
+
+        # <-- This makes the first row index = 1 -->
+        top10.index = top10.index + 1
+
         st.table(top10)
 
     except Exception as e:
