@@ -107,23 +107,23 @@ if section == "🔎 Summary":
         <ul style="line-height:1.6;">
           <li>
             <strong>Patients aren’t just satisfied—they’re grateful.</strong><br>
-            Phrases like “loved,” “easy,” and “saved me time” dominate feedback, reflecting appreciation for simplicity. A few outliers—like “didn’t feel the doctor listened”—point to an opportunity to humanize virtual care interactions.
+            Phrases like “loved,” “easy,” and “saved me time” dominate feedback, reflecting a strong emotional and practical value-add. Statements like "didn't feel the doctor listened” indicaates opportunity to better humanize virtual care.
           </li>
           <li>
             <strong>Convenience is currency.</strong><br>
-            The most charged words in the word cloud (e.g., easy, delivery, convenient, saved) show value placed on frictionless access often outweighs clinical detail. Streamlining further could deepen loyalty.
+            The most charged words in the word cloud (e.g., easy, delivery, convenient, saved) show value placed on frictionless access that often outweighs more detailed clinical care. 
           </li>
           <li>
-            <strong>Telehealth is gaining real-world momentum—especially among new users.</strong><br>
-            A 70% increase in virtual visits year-over-year signals more patients entering Ro digitally. Focus on onboarding flows and first-time user education is key.
+            <strong>Telehealth is gaining real-world momentum.</strong><br>
+            A 70% increase in virtual visits YoY signals more patients entering healthcare digitally. Personalized healthcare will be key to driving user-retention and loyalty and therefore reducing churn.
           </li>
           <li>
-            <strong>Ro’s medical offerings resonate—but questions linger.</strong><br>
-            OpenFDA reports indicate side effects like headaches and dizziness for minoxidil. Transparency and reassurance in post-purchase messaging could reduce hesitancy.
+            <strong>While patients feel comfortable taking minoxidil, there are some side effects that can cause hesitancy.</strong><br>
+            FDA reports indicate side effects like headaches and dizziness for patients taking minoxidil. 
           </li>
           <li>
             <strong>Hair loss treatment is driving curiosity.</strong><br>
-            Online interest around “Hair loss treatment” outpaces all other topics. Consider educational content, video testimonials, or first-time offers to capitalize on this awareness.
+            Online interest around “Hair loss treatment” outpaces all other topics. Consider doubling-down on messaging related to treatment of Alopecia.
           </li>
         </ul>
         </div>
